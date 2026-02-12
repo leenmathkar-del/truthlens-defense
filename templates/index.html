@@ -1,29 +1,24 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>TruthLens Defense</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
 <body>
 
-<div class="container">
-    <h1>TRUTHLENS DEFENSE</h1>
-    <p>Advanced AI Image Verification System</p>
+<div class="background"></div>
 
-    <div class="upload-box">
-        <form method="POST" enctype="multipart/form-data">
-            <input type="file" name="file" required>
-            <br>
-            <button type="submit">SCAN IMAGE</button>
-        </form>
+<div class="main-container">
+
+    <h1 class="main-title">
+        TRUTHLENS DEFENSE
+    </h1>
+
+    <p class="subtitle">
+        Advanced AI Image Verification System
+    </p>
+
+    <div class="card">
+        <button id="scanBtn" class="scan-btn">
+            SCAN IMAGE
+        </button>
     </div>
 
-    {% if result %}
-        <div class="result">
-            <h2>{{ result }}</h2>
-        </div>
-    {% endif %}
 </div>
 
+<script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
-</html>
