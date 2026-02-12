@@ -210,46 +210,6 @@ def admin_panel():
     incidents = Incident.query.all()
 
     return render_template("admin.html", users=users, incidents=incidents)
-# ===============================
-# AI IMAGE ANALYSIS
-# ===============================
-
-@app.route("/analyze_image", methods=["POST"])
-@login_required
-def analyze_image():
-
-    if "image" not in request.files:
-        return {"error": "No image uploaded"}, 400
-
-    image = request.files["image"]
-
-    try:
-        response = requests.post(
-            AI_API_URL,
-            files={"image": image},
-            headers={"api-key": AI_API_KEY}
-        )
-
-        result = response.json()
-
-        # مثال استخراج نتيجة
-        confidence = result.get("output", {}).get("distance", 0.5)
-
-        if confidence > 0.7:
-            threat_level = "High"
-        elif confidence > 0.4:
-            threat_level = "Medium"
-        else:
-            threat_level = "Low"
-
-        return {
-            "status": "success",
-            "confidence": confidence,
-            "threat_level": threat_level
-        }
-
-    except Exception as e:
-        return {"error": str(e)}, 500
         # ===============================
 # AI IMAGE ANALYSIS
 # ===============================
