@@ -1,137 +1,129 @@
-/* ===== Reset ===== */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Cairo:wght@400;600&display=swap');
+
+:root {
+  --bg-dark: #0b0f14;
+  --bg-card: #11171f;
+  --green-main: #00ff88;
+  --green-soft: #00cc66;
+  --text-main: #ffffff;
+  --text-muted: #8a94a6;
+}
+
 * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-/* ===== Animated Background ===== */
 body {
-    font-family: 'Segoe UI', sans-serif;
-    height: 100vh;
-    background: linear-gradient(-45deg, #0f2027, #203a43, #2c5364, #00f5d4);
-    background-size: 400% 400%;
-    animation: gradientMove 12s ease infinite;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    overflow: hidden;
-    color: white;
+  font-family: 'Cairo', sans-serif;
+  background: var(--bg-dark);
+  color: var(--text-main);
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
 }
 
-@keyframes gradientMove {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-}
-
-/* ===== Title Animation ===== */
-h1 {
-    position: absolute;
-    top: 15%;
-    font-size: 55px;
-    letter-spacing: 4px;
-    text-transform: uppercase;
-    animation: fadeSlide 2s ease forwards, glowPulse 2.5s infinite alternate;
-    opacity: 0;
-}
-
-@keyframes fadeSlide {
-    from {
-        transform: translateY(-40px);
-        opacity: 0;
-    }
-    to {
-        transform: translateY(0);
-        opacity: 1;
-    }
-}
-
-@keyframes glowPulse {
-    from {
-        text-shadow: 0 0 10px #00f5d4, 0 0 20px #00f5d4;
-    }
-    to {
-        text-shadow: 0 0 20px #00ffea, 0 0 40px #00ffea;
-    }
-}
-
-/* ===== Glass Card ===== */
-.container {
-    backdrop-filter: blur(15px);
-    background: rgba(255, 255, 255, 0.1);
-    padding: 40px;
-    border-radius: 20px;
-    box-shadow: 0 0 40px rgba(0, 255, 234, 0.3);
-    text-align: center;
-    width: 350px;
-}
-
-/* ===== Button ===== */
-button {
-    margin-top: 20px;
-    padding: 12px 30px;
-    border: none;
-    border-radius: 30px;
-    font-size: 16px;
-    background: linear-gradient(90deg, #00f5d4, #00c9a7);
-    color: black;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    position: relative;
-    overflow: hidden;
-}
-
-/* Hover Effect */
-button:hover {
-    transform: scale(1.08);
-    box-shadow: 0 0 25px #00f5d4;
-}
-
-/* Click Effect */
-button:active {
-    transform: scale(0.95);
-}
-
-/* Ripple Effect */
-button::after {
-    content: "";
-    position: absolute;
-    width: 300%;
-    height: 300%;
-    background: rgba(255,255,255,0.2);
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%) scale(0);
-    border-radius: 50%;
-    transition: transform 0.5s ease;
-}
-
-button:active::after {
-    transform: translate(-50%, -50%) scale(1);
-    opacity: 0;
-}
-
-/* ===== Subtitle ===== */
-p {
-    margin-top: 10px;
-    font-size: 14px;
-    opacity: 0.8;
-}
-
-/* ===== Floating Particles ===== */
+/* خلفية متوهجة */
 body::before {
-    content: "";
-    position: absolute;
-    width: 200%;
-    height: 200%;
-    background-image: radial-gradient(circle, rgba(255,255,255,0.15) 1px, transparent 1px);
-    background-size: 50px 50px;
-    animation: particlesMove 30s linear infinite;
-    z-index: -1;
+  content: "";
+  position: absolute;
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(0,255,136,0.15), transparent 70%);
+  top: -200px;
+  left: -200px;
+  z-index: 0;
 }
 
-@keyframes particlesMove {
-    from { transform: translate(0, 0); }
-    to { transform: translate(-200px, -200px); }
+body::after {
+  content: "";
+  position: absolute;
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(0,255,136,0.15), transparent 70%);
+  bottom: -200px;
+  right: -200px;
+  z-index: 0;
+}
+
+.container {
+  position: relative;
+  z-index: 2;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+
+/* العنوان */
+h1 {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 64px;
+  letter-spacing: 4px;
+  color: var(--green-main);
+  text-shadow: 0 0 20px rgba(0,255,136,0.6);
+  margin-bottom: 10px;
+  animation: fadeUp 1.2s ease;
+}
+
+.subtitle {
+  color: var(--text-muted);
+  margin-bottom: 40px;
+  font-size: 18px;
+}
+
+/* الكارد */
+.card {
+  background: var(--bg-card);
+  padding: 40px;
+  border-radius: 20px;
+  width: 400px;
+  text-align: center;
+  position: relative;
+  box-shadow: 0 0 40px rgba(0,255,136,0.08);
+  border: 1px solid rgba(0,255,136,0.15);
+  overflow: hidden;
+}
+
+/* تأثير مسح يمر على الكارد */
+.card::before {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--green-main), transparent);
+  top: 0;
+  left: -100%;
+  animation: scan 3s linear infinite;
+}
+
+@keyframes scan {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+/* زر */
+button {
+  background: linear-gradient(90deg, var(--green-main), var(--green-soft));
+  border: none;
+  padding: 14px 30px;
+  border-radius: 30px;
+  color: #000;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.3s ease;
+  margin-top: 20px;
+}
+
+button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 20px rgba(0,255,136,0.5);
+}
+
+/* أنيميشن دخول */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
