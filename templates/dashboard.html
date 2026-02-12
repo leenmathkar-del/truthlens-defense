@@ -2,17 +2,22 @@
 
 <div class="container">
 <div class="card">
-<h2>Welcome {{ name }}</h2>
 
-<p>Threat Overview:</p>
+<h2>Welcome {{ name }} ({{ role }})</h2>
 
-<div style="background:#004d26;padding:10px;border-radius:8px;margin:10px 0;">
-Active Threat Level: LOW
-</div>
+<p>Total Threat Events: {{ threat_count }}</p>
 
-<div style="background:#7a0000;padding:10px;border-radius:8px;margin:10px 0;">
-Recent Incident: AI Manipulation Detected
-</div>
+<a href="/scan"><button>Run AI Scan</button></a>
+<a href="/generate-report"><button>Download PDF Report</button></a>
+
+{% if role == "Admin" %}
+<a href="/admin"><button>Admin Panel</button></a>
+{% endif %}
+
+<h3>Threat Logs</h3>
+{% for log in logs %}
+<p>{{ log.timestamp }} - {{ log.result }}</p>
+{% endfor %}
 
 <a href="/logout"><button>Logout</button></a>
 
