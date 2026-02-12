@@ -1,0 +1,34 @@
+{% extends "dashboard.html" %}
+{% block content %}
+
+<h2>Incident Response Center</h2>
+
+<div class="card">
+    <form method="POST" action="/create_incident">
+        <input type="text" name="title" placeholder="Incident Title" required>
+        <textarea name="description" placeholder="Incident Description" required></textarea>
+        <select name="severity">
+            <option>Low</option>
+            <option>Medium</option>
+            <option>High</option>
+            <option>Critical</option>
+        </select>
+        <button type="submit">Open Incident</button>
+    </form>
+</div>
+
+<hr>
+
+{% for i in incidents %}
+<div class="card">
+    <h3>{{ i.title }}</h3>
+    <p>{{ i.description }}</p>
+    <p><strong>Severity:</strong> {{ i.severity }}</p>
+    <p><strong>Status:</strong> {{ i.status }}</p>
+    <a href="/update_status/{{ i.id }}">
+        <button>Update Status</button>
+    </a>
+</div>
+{% endfor %}
+
+{% endblock %}
