@@ -1,8 +1,13 @@
-from flask import Flask, render_template, redirect, url_for, request, flash
+from flask import Flask, render_template, redirect, url_for, request, flash, send_file
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4
 from datetime import datetime
+import requests
 import os
 
 app = Flask(__name__)
@@ -35,7 +40,6 @@ class Incident(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     created_by = db.Column(db.Integer, db.ForeignKey('user.id'))
-    assigned_to = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
 
 # ===============================
 # LOGIN MANAGER
@@ -60,11 +64,11 @@ def register():
         username = request.form["username"]
         password = generate_password_hash(request.form["password"])
 
-        new_user = User(username=username, password=password, role="Analyst")
+        new_user = User(username=username, password=password)
         db.session.add(new_user)
         db.session.commit()
 
-        flash("Account created successfully!", "success")
+        flash("Account created!", "success")
         return redirect(url_for("login"))
 
     return render_template("register.html")
@@ -81,8 +85,8 @@ def login():
         if user and check_password_hash(user.password, password):
             login_user(user)
             return redirect(url_for("dashboard"))
-        else:
-            flash("Invalid credentials", "danger")
+
+        flash("Invalid credentials", "danger")
 
     return render_template("login.html")
 
@@ -97,19 +101,19 @@ def logout():
 @app.route("/dashboard")
 @login_required
 def dashboard():
-    total_incidents = Incident.query.count()
+    total = Incident.query.count()
     open_incidents = Incident.query.filter_by(status="Open").count()
     closed_incidents = Incident.query.filter_by(status="Closed").count()
 
     return render_template(
         "dashboard.html",
-        total=total_incidents,
+        total=total,
         open=open_incidents,
         closed=closed_incidents
     )
 
 # ===============================
-# INCIDENT RESPONSE SYSTEM
+# INCIDENT SYSTEM
 # ===============================
 
 @app.route("/incidents")
@@ -155,6 +159,56 @@ def update_status(id):
         db.session.commit()
 
     return redirect(url_for("incidents"))
+
+# ===============================
+# EXPORT PDF
+# ===============================
+
+@app.route("/incident_pdf/<int:id>")
+@login_required
+def incident_pdf(id):
+    incident = Incident.query.get_or_404(id)
+
+    file_path = f"static/incident_{id}.pdf"
+    doc = SimpleDocTemplate(file_path, pagesize=A4)
+    elements = []
+
+    styles = getSampleStyleSheet()
+    elements.append(Paragraph("TruthLens Defense - Incident Report", styles["Heading1"]))
+    elements.append(Spacer(1, 20))
+
+    data = [
+        ["Title", incident.title],
+        ["Severity", incident.severity],
+        ["Status", incident.status],
+        ["Created At", str(incident.created_at)],
+    ]
+
+    table = Table(data, colWidths=[150, 300])
+    table.setStyle(TableStyle([
+        ('GRID', (0,0), (-1,-1), 1, colors.black),
+        ('BACKGROUND', (0,0), (-1,0), colors.lightgrey),
+    ]))
+
+    elements.append(table)
+    doc.build(elements)
+
+    return send_file(file_path, as_attachment=True)
+
+# ===============================
+# ADMIN PANEL
+# ===============================
+
+@app.route("/admin")
+@login_required
+def admin_panel():
+    if current_user.role != "Admin":
+        return "Access Denied"
+
+    users = User.query.all()
+    incidents = Incident.query.all()
+
+    return render_template("admin.html", users=users, incidents=incidents)
 
 # ===============================
 # DATABASE INIT
