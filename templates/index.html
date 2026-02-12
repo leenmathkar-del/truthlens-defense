@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>TruthLens AI</title>
+</head>
+<body>
+    <h1>TruthLens AI</h1>
+
+    <form method="POST" enctype="multipart/form-data">
+        <input type="file" name="image">
+        <button type="submit">تحليل الصورة</button>
+    </form>
+
+    {% if result %}
+        <h2>نسبة احتمال أن الصورة مزيفة: {{ result }}%</h2>
+    {% endif %}
+</body>
+</html>
