@@ -1,141 +1,164 @@
-from flask import Flask, render_template, redirect, url_for, request, send_file
+from flask import Flask, render_template, redirect, url_for, request, flash
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
-from reportlab.lib.styles import ParagraphStyle
-from reportlab.lib import colors
-from reportlab.lib.units import inch
-from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.pdfbase import pdfmetrics
-import requests
+from datetime import datetime
 import os
-import datetime
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'supersecretkey'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
-login_manager = LoginManager()
-login_manager.init_app(app)
-login_manager.login_view = "login"
 
-# =======================
-# Database Models
-# =======================
+login_manager = LoginManager()
+login_manager.login_view = "login"
+login_manager.init_app(app)
+
+# ===============================
+# DATABASE MODELS
+# ===============================
 
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(150), unique=True)
-    password = db.Column(db.String(200))
+    username = db.Column(db.String(150), unique=True, nullable=False)
+    password = db.Column(db.String(200), nullable=False)
     role = db.Column(db.String(50), default="Analyst")
 
-class ThreatLog(db.Model):
+class Incident(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    result = db.Column(db.String(200))
-    timestamp = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    severity = db.Column(db.String(50), nullable=False)
+    status = db.Column(db.String(50), default="Open")
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'))
+    assigned_to = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+
+# ===============================
+# LOGIN MANAGER
+# ===============================
 
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# =======================
-# AI API Simulation
-# =======================
-
-def analyze_image():
-    # هنا تحطين API حقيقي
-    # حالياً نحاكي نتيجة
-    import random
-    results = ["SAFE", "AI Manipulated", "Deepfake Suspected"]
-    return random.choice(results)
-
-# =======================
-# Routes
-# =======================
+# ===============================
+# ROUTES
+# ===============================
 
 @app.route("/")
 def home():
-    return redirect(url_for("login"))
+    return render_template("index.html")
 
-@app.route("/register", methods=["GET","POST"])
+# -------- Register --------
+@app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
-        hashed_password = generate_password_hash(request.form["password"])
-        new_user = User(
-            username=request.form["username"],
-            password=hashed_password,
-            role="Analyst"
-        )
+        username = request.form["username"]
+        password = generate_password_hash(request.form["password"])
+
+        new_user = User(username=username, password=password, role="Analyst")
         db.session.add(new_user)
         db.session.commit()
+
+        flash("Account created successfully!", "success")
         return redirect(url_for("login"))
+
     return render_template("register.html")
 
-@app.route("/login", methods=["GET","POST"])
+# -------- Login --------
+@app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        user = User.query.filter_by(username=request.form["username"]).first()
-        if user and check_password_hash(user.password, request.form["password"]):
+        username = request.form["username"]
+        password = request.form["password"]
+
+        user = User.query.filter_by(username=username).first()
+
+        if user and check_password_hash(user.password, password):
             login_user(user)
             return redirect(url_for("dashboard"))
+        else:
+            flash("Invalid credentials", "danger")
+
     return render_template("login.html")
 
-@app.route("/dashboard")
-@login_required
-def dashboard():
-    logs = ThreatLog.query.all()
-    threat_count = ThreatLog.query.count()
-    return render_template("dashboard.html",
-                           name=current_user.username,
-                           role=current_user.role,
-                           logs=logs,
-                           threat_count=threat_count)
-
-@app.route("/scan")
-@login_required
-def scan():
-    result = analyze_image()
-    new_log = ThreatLog(result=result)
-    db.session.add(new_log)
-    db.session.commit()
-    return redirect(url_for("dashboard"))
-
-@app.route("/generate-report")
-@login_required
-def generate_report():
-    file_path = "threat_report.pdf"
-    doc = SimpleDocTemplate(file_path)
-    elements = []
-    styles = getSampleStyleSheet()
-
-    elements.append(Paragraph("TruthLens Defense Report", styles["Title"]))
-    elements.append(Spacer(1, 0.3 * inch))
-
-    logs = ThreatLog.query.all()
-    for log in logs:
-        elements.append(Paragraph(f"{log.timestamp} - {log.result}", styles["Normal"]))
-        elements.append(Spacer(1, 0.2 * inch))
-
-    doc.build(elements)
-
-    return send_file(file_path, as_attachment=True)
-
-@app.route("/admin")
-@login_required
-def admin():
-    if current_user.role != "Admin":
-        return "Access Denied"
-    users = User.query.all()
-    return render_template("admin.html", users=users)
-
+# -------- Logout --------
 @app.route("/logout")
 @login_required
 def logout():
     logout_user()
-    return redirect(url_for("login"))
+    return redirect(url_for("home"))
+
+# -------- Dashboard --------
+@app.route("/dashboard")
+@login_required
+def dashboard():
+    total_incidents = Incident.query.count()
+    open_incidents = Incident.query.filter_by(status="Open").count()
+    closed_incidents = Incident.query.filter_by(status="Closed").count()
+
+    return render_template(
+        "dashboard.html",
+        total=total_incidents,
+        open=open_incidents,
+        closed=closed_incidents
+    )
+
+# ===============================
+# INCIDENT RESPONSE SYSTEM
+# ===============================
+
+@app.route("/incidents")
+@login_required
+def incidents():
+    if current_user.role == "Admin":
+        all_incidents = Incident.query.all()
+    else:
+        all_incidents = Incident.query.filter_by(created_by=current_user.id).all()
+
+    return render_template("incidents.html", incidents=all_incidents)
+
+@app.route("/create_incident", methods=["POST"])
+@login_required
+def create_incident():
+    title = request.form["title"]
+    description = request.form["description"]
+    severity = request.form["severity"]
+
+    new_incident = Incident(
+        title=title,
+        description=description,
+        severity=severity,
+        created_by=current_user.id
+    )
+
+    db.session.add(new_incident)
+    db.session.commit()
+
+    return redirect(url_for("incidents"))
+
+@app.route("/update_status/<int:id>")
+@login_required
+def update_status(id):
+    incident = Incident.query.get_or_404(id)
+
+    if current_user.role == "Admin":
+        if incident.status == "Open":
+            incident.status = "In Progress"
+        elif incident.status == "In Progress":
+            incident.status = "Closed"
+
+        db.session.commit()
+
+    return redirect(url_for("incidents"))
+
+# ===============================
+# DATABASE INIT
+# ===============================
 
 if __name__ == "__main__":
     with app.app_context():
