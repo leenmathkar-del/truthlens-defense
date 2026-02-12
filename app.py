@@ -1,260 +1,188 @@
-from flask import Flask, render_template, redirect, url_for, request, flash, send_file
-from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
-from werkzeug.security import generate_password_hash, check_password_hash
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
-from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.lib import colors
-from reportlab.lib.pagesizes import A4
-from datetime import datetime
-import requests
 import os
+from datetime import datetime, timedelta
+from functools import wraps
+
+from flask import Flask, render_template, request, redirect, url_for, jsonify
+from flask_sqlalchemy import SQLAlchemy
+from flask_bcrypt import Bcrypt
+import jwt
+
+# ==============================
+# APP CONFIG
+# ==============================
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'supersecretkey'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-AI_API_KEY = os.getenv("AI_API_KEY")
-AI_API_URL = "https://api.deepai.org/api/image-similarity"
+
+app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "supersecretkey")
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
+    "DATABASE_URL",
+    "sqlite:///truthlens.db"
+)
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
 db = SQLAlchemy(app)
+bcrypt = Bcrypt(app)
 
-login_manager = LoginManager()
-login_manager.login_view = "login"
-login_manager.init_app(app)
+# ==============================
+# MODELS
+# ==============================
 
-# ===============================
-# DATABASE MODELS
-# ===============================
-
-class User(UserMixin, db.Model):
+class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(150), unique=True, nullable=False)
-    password = db.Column(db.String(200), nullable=False)
-    role = db.Column(db.String(50), default="Analyst")
+    username = db.Column(db.String(100), unique=True, nullable=False)
+    password = db.Column(db.String(255), nullable=False)
+    role = db.Column(db.String(50), default="analyst")
 
-class Incident(db.Model):
+class Report(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(200), nullable=False)
-    description = db.Column(db.Text, nullable=False)
-    severity = db.Column(db.String(50), nullable=False)
-    status = db.Column(db.String(50), default="Open")
+    title = db.Column(db.String(200))
+    description = db.Column(db.Text)
+    threat_level = db.Column(db.String(50))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    created_by = db.Column(db.Integer, db.ForeignKey('user.id'))
+# ==============================
+# JWT DECORATOR
+# ==============================
 
-# ===============================
-# LOGIN MANAGER
-# ===============================
+def token_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = request.headers.get("Authorization")
 
-@login_manager.user_loader
-def load_user(user_id):
-    return User.query.get(int(user_id))
+        if not token:
+            return jsonify({"error": "Token missing"}), 401
 
-# ===============================
+        try:
+            data = jwt.decode(
+                token,
+                app.config["SECRET_KEY"],
+                algorithms=["HS256"]
+            )
+            current_user = User.query.get(data["user_id"])
+        except:
+            return jsonify({"error": "Invalid token"}), 401
+
+        return f(current_user, *args, **kwargs)
+
+    return decorated
+
+# ==============================
 # ROUTES
-# ===============================
+# ==============================
 
 @app.route("/")
 def home():
     return render_template("index.html")
 
-# -------- Register --------
-@app.route("/register", methods=["GET", "POST"])
+# ------------------------------
+# REGISTER
+# ------------------------------
+
+@app.route("/register", methods=["POST"])
 def register():
-    if request.method == "POST":
-        username = request.form["username"]
-        password = generate_password_hash(request.form["password"])
+    data = request.json
 
-        new_user = User(username=username, password=password)
-        db.session.add(new_user)
-        db.session.commit()
+    hashed_password = bcrypt.generate_password_hash(
+        data["password"]
+    ).decode("utf-8")
 
-        flash("Account created!", "success")
-        return redirect(url_for("login"))
-
-    return render_template("register.html")
-
-# -------- Login --------
-@app.route("/login", methods=["GET", "POST"])
-def login():
-    if request.method == "POST":
-        username = request.form["username"]
-        password = request.form["password"]
-
-        user = User.query.filter_by(username=username).first()
-
-        if user and check_password_hash(user.password, password):
-            login_user(user)
-            return redirect(url_for("dashboard"))
-
-        flash("Invalid credentials", "danger")
-
-    return render_template("login.html")
-
-# -------- Logout --------
-@app.route("/logout")
-@login_required
-def logout():
-    logout_user()
-    return redirect(url_for("home"))
-
-# -------- Dashboard --------
-@app.route("/dashboard")
-@login_required
-def dashboard():
-    total = Incident.query.count()
-    open_incidents = Incident.query.filter_by(status="Open").count()
-    closed_incidents = Incident.query.filter_by(status="Closed").count()
-
-    return render_template(
-        "dashboard.html",
-        total=total,
-        open=open_incidents,
-        closed=closed_incidents
+    new_user = User(
+        username=data["username"],
+        password=hashed_password,
+        role="analyst"
     )
 
-# ===============================
-# INCIDENT SYSTEM
-# ===============================
-
-@app.route("/incidents")
-@login_required
-def incidents():
-    if current_user.role == "Admin":
-        all_incidents = Incident.query.all()
-    else:
-        all_incidents = Incident.query.filter_by(created_by=current_user.id).all()
-
-    return render_template("incidents.html", incidents=all_incidents)
-
-@app.route("/create_incident", methods=["POST"])
-@login_required
-def create_incident():
-    title = request.form["title"]
-    description = request.form["description"]
-    severity = request.form["severity"]
-
-    new_incident = Incident(
-        title=title,
-        description=description,
-        severity=severity,
-        created_by=current_user.id
-    )
-
-    db.session.add(new_incident)
+    db.session.add(new_user)
     db.session.commit()
 
-    return redirect(url_for("incidents"))
+    return jsonify({"message": "User registered successfully"})
 
-@app.route("/update_status/<int:id>")
-@login_required
-def update_status(id):
-    incident = Incident.query.get_or_404(id)
+# ------------------------------
+# LOGIN
+# ------------------------------
 
-    if current_user.role == "Admin":
-        if incident.status == "Open":
-            incident.status = "In Progress"
-        elif incident.status == "In Progress":
-            incident.status = "Closed"
+@app.route("/login", methods=["POST"])
+def login():
+    data = request.json
+    user = User.query.filter_by(username=data["username"]).first()
 
-        db.session.commit()
+    if not user or not bcrypt.check_password_hash(
+        user.password,
+        data["password"]
+    ):
+        return jsonify({"error": "Invalid credentials"}), 401
 
-    return redirect(url_for("incidents"))
+    token = jwt.encode(
+        {
+            "user_id": user.id,
+            "exp": datetime.utcnow() + timedelta(hours=8)
+        },
+        app.config["SECRET_KEY"],
+        algorithm="HS256"
+    )
 
-# ===============================
-# EXPORT PDF
-# ===============================
+    return jsonify({"token": token})
 
-@app.route("/incident_pdf/<int:id>")
-@login_required
-def incident_pdf(id):
-    incident = Incident.query.get_or_404(id)
+# ------------------------------
+# CREATE REPORT
+# ------------------------------
 
-    file_path = f"static/incident_{id}.pdf"
-    doc = SimpleDocTemplate(file_path, pagesize=A4)
-    elements = []
+@app.route("/create_report", methods=["POST"])
+@token_required
+def create_report(current_user):
+    data = request.json
 
-    styles = getSampleStyleSheet()
-    elements.append(Paragraph("TruthLens Defense - Incident Report", styles["Heading1"]))
-    elements.append(Spacer(1, 20))
+    report = Report(
+        title=data["title"],
+        description=data["description"],
+        threat_level=data["threat_level"]
+    )
 
-    data = [
-        ["Title", incident.title],
-        ["Severity", incident.severity],
-        ["Status", incident.status],
-        ["Created At", str(incident.created_at)],
-    ]
+    db.session.add(report)
+    db.session.commit()
 
-    table = Table(data, colWidths=[150, 300])
-    table.setStyle(TableStyle([
-        ('GRID', (0,0), (-1,-1), 1, colors.black),
-        ('BACKGROUND', (0,0), (-1,0), colors.lightgrey),
-    ]))
+    return jsonify({"message": "Report created"})
 
-    elements.append(table)
-    doc.build(elements)
+# ------------------------------
+# GET REPORTS
+# ------------------------------
 
-    return send_file(file_path, as_attachment=True)
+@app.route("/reports", methods=["GET"])
+@token_required
+def get_reports(current_user):
+    reports = Report.query.all()
 
-# ===============================
-# ADMIN PANEL
-# ===============================
+    output = []
+    for r in reports:
+        output.append({
+            "id": r.id,
+            "title": r.title,
+            "threat_level": r.threat_level,
+            "created_at": r.created_at
+        })
 
-@app.route("/admin")
-@login_required
-def admin_panel():
-    if current_user.role != "Admin":
-        return "Access Denied"
+    return jsonify(output)
 
-    users = User.query.all()
-    incidents = Incident.query.all()
-
-    return render_template("admin.html", users=users, incidents=incidents)
-        # ===============================
-# AI IMAGE ANALYSIS
-# ===============================
+# ------------------------------
+# ANALYZE IMAGE
+# ------------------------------
 
 @app.route("/analyze_image", methods=["POST"])
-@login_required
 def analyze_image():
+    file = request.files.get("image")
 
-    if "image" not in request.files:
-        return {"error": "No image uploaded"}, 400
+    if not file:
+        return "No image uploaded", 400
 
-    image = request.files["image"]
+    # حالياً تحليل وهمي
+    return jsonify({
+        "result": "AI Generated",
+        "confidence": "87%"
+    })
 
-    try:
-        response = requests.post(
-            AI_API_URL,
-            files={"image": image},
-            headers={"api-key": AI_API_KEY}
-        )
+# ==============================
+# DATABASE INIT (المكان الصحيح)
+# ==============================
 
-        result = response.json()
-
-        # مثال استخراج نتيجة
-        confidence = result.get("output", {}).get("distance", 0.5)
-
-        if confidence > 0.7:
-            threat_level = "High"
-        elif confidence > 0.4:
-            threat_level = "Medium"
-        else:
-            threat_level = "Low"
-
-        return {
-            "status": "success",
-            "confidence": confidence,
-            "threat_level": threat_level
-        }
-
-    except Exception as e:
-        return {"error": str(e)}, 500
-# ===============================
-# DATABASE INIT
-# ===============================
-
-if __name__ == "__main__":
-    with app.app_context():
-        db.create_all()
-    app.run(debug=True)
+with app.app_context():
+    db.create_all()
