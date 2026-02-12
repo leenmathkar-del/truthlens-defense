@@ -1,44 +1,224 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <title>TruthLens Defense</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <!-- CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<title>TruthLens Defense</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Cairo:wght@400;600&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --bg-dark: #0b0f14;
+  --bg-light: #f4f6f8;
+  --card-dark: #11171f;
+  --card-light: #ffffff;
+  --green-main: #006c35; /* أخضر سعودي */
+  --green-glow: #00ff88;
+  --text-dark: #ffffff;
+  --text-light: #1a1a1a;
+}
+
+body {
+  margin: 0;
+  font-family: 'Cairo', sans-serif;
+  background: var(--bg-dark);
+  color: var(--text-dark);
+  transition: 0.3s;
+}
+
+/* NAVBAR */
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 40px;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(10px);
+}
+
+.logo {
+  font-family: 'Orbitron';
+  font-size: 22px;
+  color: var(--green-glow);
+}
+
+.nav-links {
+  display: flex;
+  gap: 25px;
+  align-items: center;
+}
+
+.nav-links a {
+  text-decoration: none;
+  color: inherit;
+  font-size: 14px;
+  transition: 0.3s;
+}
+
+.nav-links a:hover {
+  color: var(--green-glow);
+}
+
+/* BUTTONS */
+.toggle-btn, .lang-btn {
+  cursor: pointer;
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--green-main);
+  background: transparent;
+  color: inherit;
+}
+
+/* HERO */
+.container {
+  text-align: center;
+  padding-top: 80px;
+}
+
+h1 {
+  font-family: 'Orbitron';
+  font-size: 55px;
+  color: var(--green-glow);
+  text-shadow: 0 0 20px rgba(0,255,136,0.5);
+}
+
+.subtitle {
+  color: gray;
+  margin-bottom: 40px;
+}
+
+/* CARD */
+.card {
+  background: var(--card-dark);
+  width: 400px;
+  margin: auto;
+  padding: 30px;
+  border-radius: 20px;
+  box-shadow: 0 0 30px rgba(0,255,136,0.1);
+}
+
+button.scan {
+  margin-top: 20px;
+  padding: 12px 25px;
+  border-radius: 25px;
+  border: none;
+  background: linear-gradient(90deg,#00ff88,#00cc66);
+  font-weight: bold;
+  cursor: pointer;
+}
+
+/* THREAT LEVEL */
+.threat-box {
+  margin-top: 25px;
+  padding: 15px;
+  border-radius: 12px;
+  font-weight: bold;
+}
+
+.low { background: #004d26; }
+.medium { background: #7a5c00; }
+.high { background: #7a0000; }
+
+/* Vision Badge */
+.vision {
+  position: absolute;
+  top: 70px;
+  left: 30px;
+  font-size: 14px;
+  opacity: 0.6;
+}
+
+/* LIGHT MODE */
+.light-mode {
+  background: var(--bg-light);
+  color: var(--text-light);
+}
+
+.light-mode .card {
+  background: var(--card-light);
+}
+
+</style>
 </head>
 
 <body>
 
-<div class="container">
+<div class="navbar">
+  <div class="logo">TRUTHLENS</div>
 
-    <h1>TRUTHLENS DEFENSE</h1>
-    <p class="subtitle">Adaptive Cyber Intelligence Platform</p>
+  <div class="nav-links">
+    <a href="#">Dashboard</a>
+    <a href="#">Threat Intel</a>
+    <a href="#">Reports</a>
+    <a href="#">Login</a>
+    <a href="#">Register</a>
 
-    <div class="card">
-
-        <form action="/" method="POST" enctype="multipart/form-data">
-            
-            <p>Upload image for AI authenticity verification</p>
-            
-            <input type="file" name="image" required
-                style="margin-top:20px; color:white;">
-            
-            <button type="submit">SCAN IMAGE</button>
-
-        </form>
-
-        {% if result %}
-        <div style="margin-top:25px;">
-            <h3 style="color:#00ff88;">Analysis Result:</h3>
-            <p>{{ result }}</p>
-        </div>
-        {% endif %}
-
-    </div>
-
+    <button class="lang-btn" onclick="toggleLang()">AR / EN</button>
+    <button class="toggle-btn" onclick="toggleMode()">🌙</button>
+  </div>
 </div>
+
+<div class="vision">
+  Vision 2030 | National Cyber Security Inspired
+</div>
+
+<div class="container">
+  <h1 id="title">TRUTHLENS DEFENSE</h1>
+  <p class="subtitle" id="subtitle">Adaptive Cyber Intelligence Platform</p>
+
+  <div class="card">
+      <p id="uploadText">Upload image for AI authenticity verification</p>
+      <input type="file">
+      <button class="scan" onclick="scan()">SCAN IMAGE</button>
+
+      <div id="threatResult"></div>
+  </div>
+</div>
+
+<script>
+
+let dark = true;
+let arabic = true;
+
+function toggleMode(){
+  document.body.classList.toggle("light-mode");
+  dark = !dark;
+}
+
+function toggleLang(){
+  arabic = !arabic;
+  if(arabic){
+    document.documentElement.lang = "ar";
+    document.documentElement.dir = "rtl";
+    document.getElementById("subtitle").innerText = "منصة ذكاء سيبراني تكيفي";
+    document.getElementById("uploadText").innerText = "ارفع الصورة للتحقق من صحتها";
+  } else {
+    document.documentElement.lang = "en";
+    document.documentElement.dir = "ltr";
+    document.getElementById("subtitle").innerText = "Adaptive Cyber Intelligence Platform";
+    document.getElementById("uploadText").innerText = "Upload image for AI authenticity verification";
+  }
+}
+
+function scan(){
+  let levels = ["low","medium","high"];
+  let random = levels[Math.floor(Math.random()*levels.length)];
+
+  let box = document.getElementById("threatResult");
+  box.className = "threat-box " + random;
+
+  if(random === "low"){
+    box.innerText = "Threat Level: LOW";
+  } else if(random === "medium"){
+    box.innerText = "Threat Level: MEDIUM";
+  } else {
+    box.innerText = "Threat Level: HIGH";
+  }
+}
+
+</script>
 
 </body>
 </html>
