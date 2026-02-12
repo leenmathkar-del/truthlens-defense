@@ -1,24 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>TruthLens Defense</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
 <body>
 
-<div class="background"></div>
+<div class="container">
 
-<div class="main-container">
-
-    <h1 class="main-title">
-        TRUTHLENS DEFENSE
-    </h1>
-
-    <p class="subtitle">
-        Advanced AI Image Verification System
-    </p>
+    <h1>TRUTHLENS DEFENSE</h1>
+    <p class="subtitle">Adaptive Cyber Intelligence Platform</p>
 
     <div class="card">
-        <button id="scanBtn" class="scan-btn">
-            SCAN IMAGE
-        </button>
+
+        <form action="/" method="POST" enctype="multipart/form-data">
+            
+            <p>Upload image for AI authenticity verification</p>
+            
+            <input type="file" name="image" required
+                style="margin-top:20px; color:white;">
+            
+            <button type="submit">SCAN IMAGE</button>
+
+        </form>
+
+        {% if result %}
+        <div style="margin-top:25px;">
+            <h3 style="color:#00ff88;">Analysis Result:</h3>
+            <p>{{ result }}</p>
+        </div>
+        {% endif %}
+
     </div>
 
 </div>
 
-<script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
+</html>
