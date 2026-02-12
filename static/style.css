@@ -1,61 +1,137 @@
-body {
+/* ===== Reset ===== */
+* {
     margin: 0;
     padding: 0;
-    background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
-    font-family: Arial, sans-serif;
+    box-sizing: border-box;
+}
+
+/* ===== Animated Background ===== */
+body {
+    font-family: 'Segoe UI', sans-serif;
+    height: 100vh;
+    background: linear-gradient(-45deg, #0f2027, #203a43, #2c5364, #00f5d4);
+    background-size: 400% 400%;
+    animation: gradientMove 12s ease infinite;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
     color: white;
-    text-align: center;
 }
 
-.container {
-    margin-top: 100px;
+@keyframes gradientMove {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
 }
 
+/* ===== Title Animation ===== */
 h1 {
-    font-size: 50px;
-    letter-spacing: 3px;
-    text-shadow: 0 0 15px #00ffc8;
+    position: absolute;
+    top: 15%;
+    font-size: 55px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    animation: fadeSlide 2s ease forwards, glowPulse 2.5s infinite alternate;
+    opacity: 0;
 }
 
-p {
-    font-size: 18px;
-    margin-bottom: 40px;
-    color: #cccccc;
+@keyframes fadeSlide {
+    from {
+        transform: translateY(-40px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
 }
 
-.upload-box {
+@keyframes glowPulse {
+    from {
+        text-shadow: 0 0 10px #00f5d4, 0 0 20px #00f5d4;
+    }
+    to {
+        text-shadow: 0 0 20px #00ffea, 0 0 40px #00ffea;
+    }
+}
+
+/* ===== Glass Card ===== */
+.container {
+    backdrop-filter: blur(15px);
     background: rgba(255, 255, 255, 0.1);
     padding: 40px;
-    border-radius: 15px;
+    border-radius: 20px;
+    box-shadow: 0 0 40px rgba(0, 255, 234, 0.3);
+    text-align: center;
     width: 350px;
-    margin: auto;
-    backdrop-filter: blur(10px);
-    box-shadow: 0 0 20px rgba(0, 255, 200, 0.3);
 }
 
-input[type="file"] {
-    margin-bottom: 20px;
-    color: white;
-}
-
+/* ===== Button ===== */
 button {
-    background: #00ffc8;
-    border: none;
+    margin-top: 20px;
     padding: 12px 30px;
+    border: none;
+    border-radius: 30px;
     font-size: 16px;
-    border-radius: 8px;
+    background: linear-gradient(90deg, #00f5d4, #00c9a7);
+    color: black;
     cursor: pointer;
-    transition: 0.3s;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
 }
 
+/* Hover Effect */
 button:hover {
-    background: #00ccaa;
-    transform: scale(1.05);
+    transform: scale(1.08);
+    box-shadow: 0 0 25px #00f5d4;
 }
 
-.result {
-    margin-top: 40px;
-    font-size: 22px;
-    color: #00ffcc;
-    text-shadow: 0 0 10px #00ffcc;
+/* Click Effect */
+button:active {
+    transform: scale(0.95);
+}
+
+/* Ripple Effect */
+button::after {
+    content: "";
+    position: absolute;
+    width: 300%;
+    height: 300%;
+    background: rgba(255,255,255,0.2);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    border-radius: 50%;
+    transition: transform 0.5s ease;
+}
+
+button:active::after {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0;
+}
+
+/* ===== Subtitle ===== */
+p {
+    margin-top: 10px;
+    font-size: 14px;
+    opacity: 0.8;
+}
+
+/* ===== Floating Particles ===== */
+body::before {
+    content: "";
+    position: absolute;
+    width: 200%;
+    height: 200%;
+    background-image: radial-gradient(circle, rgba(255,255,255,0.15) 1px, transparent 1px);
+    background-size: 50px 50px;
+    animation: particlesMove 30s linear infinite;
+    z-index: -1;
+}
+
+@keyframes particlesMove {
+    from { transform: translate(0, 0); }
+    to { transform: translate(-200px, -200px); }
 }
