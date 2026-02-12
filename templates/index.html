@@ -1,18 +1,29 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>TruthLens AI</title>
+    <title>TruthLens Defense</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <h1>TruthLens AI</h1>
 
-    <form method="POST" enctype="multipart/form-data">
-        <input type="file" name="image">
-        <button type="submit">تحليل الصورة</button>
-    </form>
+<div class="container">
+    <h1>TRUTHLENS DEFENSE</h1>
+    <p>Advanced AI Image Verification System</p>
+
+    <div class="upload-box">
+        <form method="POST" enctype="multipart/form-data">
+            <input type="file" name="file" required>
+            <br>
+            <button type="submit">SCAN IMAGE</button>
+        </form>
+    </div>
 
     {% if result %}
-        <h2>نسبة احتمال أن الصورة مزيفة: {{ result }}%</h2>
+        <div class="result">
+            <h2>{{ result }}</h2>
+        </div>
     {% endif %}
+</div>
+
 </body>
 </html>
